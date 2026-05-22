@@ -241,7 +241,7 @@ Schema:
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
+                            <div className="space-y-4 mb-8">
                                 <div className="bg-green-50/50 p-4 rounded-2xl border border-green-100">
                                     <p className="text-sm font-bold text-green-700 mb-1">✅ 初心者向けコツ</p>
                                     <p className="text-gray-700 text-sm">{cut.tips}</p>
@@ -250,6 +250,34 @@ Schema:
                                     <p className="text-sm font-bold text-red-600 mb-1">⚠️ 失敗しやすい例</p>
                                     <p className="text-gray-700 text-sm">{cut.ng}</p>
                                 </div>
+                            </div>
+
+                            {/* カメラ起動エリア */}
+                            <div className="bg-gray-800 p-5 rounded-2xl text-center shadow-md relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/30 pointer-events-none"></div>
+                                <p className="text-gray-300 text-sm font-bold mb-3 relative z-10">ガイドを確認したら、いざ撮影！</p>
+                                
+                                {/* 隠しinput要素（カメラ起動用） */}
+                                <input 
+                                    type="file" 
+                                    accept="video/*" 
+                                    capture="environment" 
+                                    id={`camera-input-${currentCut}`}
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        // 撮影が終わって戻ってきた時の処理 (今回は特に何もしないが、将来的にプレビューなどを追加可能)
+                                        console.log("動画が選択・撮影されました", e.target.files);
+                                    }}
+                                />
+                                
+                                {/* 目立つカメラボタン */}
+                                <label 
+                                    htmlFor={`camera-input-${currentCut}`}
+                                    className="inline-flex items-center justify-center w-full bg-red-500 hover:bg-red-600 active:scale-95 text-white text-xl py-4 rounded-xl font-bold transition-all cursor-pointer shadow-lg relative z-10"
+                                >
+                                    <span className="text-2xl mr-2">📸</span> カメラを開く
+                                </label>
+                                <p className="text-gray-400 text-xs mt-3 relative z-10">※ {cut.duration}秒ほど撮影して、アプリに戻ってきてください</p>
                             </div>
                         </div>
 
