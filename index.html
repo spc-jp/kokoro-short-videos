@@ -5,17 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ココロ・ショート - 想いを伝える動画撮影ガイド</title>
     
-    <!-- ファビコンの設定 -->
     <link rel="icon" href="https://spc-jp.github.io/kokoro-short-videos/favicon.png" type="image/png">
     
-    <!-- Tailwind CSS (デザイン用) -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel (ブラウザ上でReactを動かすため) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
@@ -44,21 +40,144 @@
             background-color: #f08a5d;
             color: white;
         }
-        /* Toast animation */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translate(-50%, 10px); }
-            to { opacity: 1; transform: translate(-50%, 0); }
-        }
-        .animate-fade-in-up {
-            animation: fadeInUp 0.3s ease-out forwards;
-        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState } = React;
+
+        // ============================================================
+        // 業種別 撮影ガイドのデータ（APIなし・完全静的）
+        // 4カット構成。technique/tips/ng は共通の「型」を使い回す
+        // ============================================================
+        const INDUSTRY_DATA = {
+            "🍽️ 飲食業": {
+                cuts: [
+                    { instruction: "お店の外観や看板を5秒撮影してください", purpose: "どこにあるどんなお店かを伝えるため" },
+                    { instruction: "料理を作る手元や、店員さんの笑顔を撮影", purpose: "お店の温かさと安心感を伝えるため" },
+                    { instruction: "一番人気のメニューを寄りで撮影", purpose: "お店の魅力と美味しさを伝えるため" },
+                    { instruction: "お客様が楽しんでいる店内全体を撮影", purpose: "賑わいと余韻を残すため" }
+                ],
+                sns: {
+                    title: "今日のお店の風景",
+                    text: "私たちのお店の日常をお届けします。少しでも雰囲気が伝われば嬉しいです。ぜひ足を運んでみてくださいね😊",
+                    hashtags: ["#今日のごはん", "#街のお店", "#グルメ巡り"],
+                    bgm: "明るく食欲をそそるカフェミュージック"
+                }
+            },
+            "⚙️ 製造業": {
+                cuts: [
+                    { instruction: "工場の外観や社名サインを5秒撮影", purpose: "会社の存在感と規模を伝えるため" },
+                    { instruction: "職人さんの手元や機械の作業風景を撮影", purpose: "技術力と真剣さを伝えるため" },
+                    { instruction: "完成した製品の質感やディテールを寄りで撮影", purpose: "ものづくりへのこだわりを伝えるため" },
+                    { instruction: "工場全体の活気ある雰囲気を撮影", purpose: "働く現場の誇りを残すため" }
+                ],
+                sns: {
+                    title: "私たちのものづくり",
+                    text: "毎日コツコツ積み重ねてきた技術と想いを動画にしました。職人の手元、ぜひご覧ください😊",
+                    hashtags: ["#ものづくり", "#日本の技術", "#町工場"],
+                    bgm: "力強く前向きなインスト"
+                }
+            },
+            "🏗️ 工事業": {
+                cuts: [
+                    { instruction: "現場の全景や会社車両を5秒撮影", purpose: "現場のスケール感を伝えるため" },
+                    { instruction: "職人さんが作業している姿を撮影", purpose: "技術と頼もしさを伝えるため" },
+                    { instruction: "丁寧な仕上がりや細部のこだわりを寄りで撮影", purpose: "仕事の質の高さを伝えるため" },
+                    { instruction: "完成した状態や引き渡し前の全景を撮影", purpose: "達成感と信頼を残すため" }
+                ],
+                sns: {
+                    title: "現場からのご報告",
+                    text: "今日も無事故で一日を終えました。地域の暮らしを支える仕事、誇りを持って取り組んでいます。",
+                    hashtags: ["#建設現場", "#職人技", "#地域に貢献"],
+                    bgm: "爽やかで力強いアコースティック"
+                }
+            },
+            "💆‍♀️ サービス業": {
+                cuts: [
+                    { instruction: "店舗やオフィスの外観を5秒撮影", purpose: "場所と雰囲気を伝えるため" },
+                    { instruction: "スタッフがお客様に向き合う表情を撮影", purpose: "接客の温かさを伝えるため" },
+                    { instruction: "サービス提供中のこだわりの瞬間を寄りで撮影", purpose: "丁寧さと専門性を伝えるため" },
+                    { instruction: "落ち着いた店内全体の空気感を撮影", purpose: "安心して通える印象を残すため" }
+                ],
+                sns: {
+                    title: "私たちのおもてなし",
+                    text: "お客様一人ひとりに丁寧に向き合っています。ちょっとした日常の一コマをお届けします😊",
+                    hashtags: ["#おもてなし", "#日常風景", "#街のお店"],
+                    bgm: "穏やかで上品なピアノ"
+                }
+            },
+            "💼 士業": {
+                cuts: [
+                    { instruction: "事務所の外観や看板を5秒撮影", purpose: "信頼できる場所であることを伝えるため" },
+                    { instruction: "先生が相談を受けている表情を撮影", purpose: "親身に向き合う姿勢を伝えるため" },
+                    { instruction: "資料や書類を扱う手元の真剣さを寄りで撮影", purpose: "専門性と丁寧さを伝えるため" },
+                    { instruction: "落ち着いた執務室の全体感を撮影", purpose: "安心して相談できる印象を残すため" }
+                ],
+                sns: {
+                    title: "私たちの相談室から",
+                    text: "ひとりで悩まず、まずはお気軽にご相談ください。あなたの声に丁寧に耳を傾けます😊",
+                    hashtags: ["#士業", "#相談できる場所", "#中小企業応援"],
+                    bgm: "落ち着きと信頼感のあるピアノ"
+                }
+            },
+            "✂️ サロン": {
+                cuts: [
+                    { instruction: "サロンの外観や入り口を5秒撮影", purpose: "通いたくなる場所だと伝えるため" },
+                    { instruction: "スタイリストの集中した表情を撮影", purpose: "技術と情熱を伝えるため" },
+                    { instruction: "施術中の手元や仕上がりの質感を寄りで撮影", purpose: "丁寧さと美しさを伝えるため" },
+                    { instruction: "明るいサロン内の全体感を撮影", purpose: "心地よい空間の余韻を残すため" }
+                ],
+                sns: {
+                    title: "今日のサロンの一コマ",
+                    text: "お一人おひとりに合わせた施術を心がけています。お気軽にご予約くださいね✨",
+                    hashtags: ["#サロン", "#ヘアスタイル", "#自分時間"],
+                    bgm: "おしゃれで軽快なボサノヴァ"
+                }
+            },
+            "📦 その他": {
+                cuts: [
+                    { instruction: "お仕事場の外観や看板を5秒撮影", purpose: "どんな場所かを伝えるため" },
+                    { instruction: "働く人の表情やリアルな作業風景を撮影", purpose: "安心感と温かさを伝えるため" },
+                    { instruction: "こだわりのポイントを寄りで撮影", purpose: "あなたの強みを伝えるため" },
+                    { instruction: "全体の風景をゆったり撮影", purpose: "余韻を残すため" }
+                ],
+                sns: {
+                    title: "私たちの日常と想い",
+                    text: "私たちの日常を少しだけお届けします。少しでも雰囲気が伝われば嬉しいです😊",
+                    hashtags: ["#日常風景", "#想いを伝える", "#中小企業"],
+                    bgm: "温かみのあるアコースティックギター"
+                }
+            }
+        };
+
+        // 共通の撮影テクニック（型）
+        const CUT_TECHNIQUES = [
+            { duration: 5, technique: "固定撮影（じっと止める）", tips: "スマホを両手でしっかり持ち、深呼吸して止めましょう。", ng: "歩きながら撮るとブレて見にくくなります。" },
+            { duration: 6, technique: "寄り撮影（少し近づく）", tips: "少し近づいて、表情や手元がよく見えるように撮ります。", ng: "遠くから小さく撮ると雰囲気が伝わりません。" },
+            { duration: 5, technique: "パン撮影（ゆっくり横へ）", tips: "息を止めて、3秒かけてゆっくりと横にスライドさせます。", ng: "速く動かしすぎると見ている人が酔ってしまいます。" },
+            { duration: 5, technique: "固定撮影", tips: "そのままじっと5秒数えます。", ng: "縦横に画面を揺らさないでください。" }
+        ];
+
+        // テーマ別の冒頭フレーズ（SNS投稿に反映）
+        const THEME_PREFIX = {
+            "🏢 会社紹介": "私たちの会社をご紹介します。",
+            "🤝 求人募集": "私たちと一緒に働いてくれる仲間を募集しています。",
+            "🔨 仕事風景": "現場のリアルな空気をお届けします。",
+            "🗣️ 社長の想い": "私たちが大切にしていることをお伝えします。",
+            "🏃 1日密着": "私たちの一日に密着しました。",
+            "🏠 店舗紹介": "私たちのお店をご紹介します。",
+            "👀 お客様目線": "お客様の視点で見た私たちをお届けします。"
+        };
+
+        // 尺ごとのカット数調整（15秒=3カット / 30秒=4カット / 60秒=4カット＋長め）
+        const DURATION_CONFIG = {
+            "⏱️ 15秒": { cutCount: 3, multiplier: 1.0 },
+            "⏱️ 30秒": { cutCount: 4, multiplier: 1.0 },
+            "⏱️ 60秒": { cutCount: 4, multiplier: 1.8 }
+        };
 
         const App = () => {
             const [step, setStep] = useState(0);
@@ -66,108 +185,83 @@
             const [theme, setTheme] = useState('');
             const [duration, setDuration] = useState('');
             
-            const [loading, setLoading] = useState(false);
             const [guideData, setGuideData] = useState(null);
             const [currentCut, setCurrentCut] = useState(0);
 
-            // モーダルとトースト用のステータス
-            const [showResetConfirm, setShowResetConfirm] = useState(false);
-            const [toastMessage, setToastMessage] = useState("");
+            // 独自モーダルとトーストの管理
+            const [showModal, setShowModal] = useState(false);
+            const [showToast, setShowToast] = useState(false);
 
             // 選択肢のデータ
             const industries = ["🍽️ 飲食業", "⚙️ 製造業", "🏗️ 工事業", "💆‍♀️ サービス業", "💼 士業", "✂️ サロン", "📦 その他"];
             const themes = ["🏢 会社紹介", "🤝 求人募集", "🔨 仕事風景", "🗣️ 社長の想い", "🏃 1日密着", "🏠 店舗紹介", "👀 お客様目線"];
             const durations = ["⏱️ 15秒", "⏱️ 30秒", "⏱️ 60秒"];
 
-            // APIを叩いて撮影ガイドを生成する関数
-            const generateGuide = async (selectedDuration) => {
+            // ガイド組み立て関数（APIなし・即時生成）
+            const buildGuide = (selectedDuration) => {
                 setDuration(selectedDuration);
-                setLoading(true);
-                setStep(4);
-                
-                const apiKey = ""; 
-                
-                const prompt = `あなたは動画初心者の経営者を支援するAIです。
-以下の条件で、CapCut自動カット機能を使ったショート動画用の撮影ガイドをJSONで作成してください。
-業種: ${industry}
-テーマ: ${theme}
-動画尺: ${selectedDuration}
 
-・1カットあたり5〜7秒程度で構成する
-・専門用語を使わず、なぜその撮影をするのか感情的に説明する
-・空気感、人の温度感を重視する
-・JSONフォーマットで出力すること。`;
+                const config = DURATION_CONFIG[selectedDuration];
+                const data = INDUSTRY_DATA[industry];
+                const themePrefix = THEME_PREFIX[theme] || "";
 
-                const systemPrompt = `You are an expert video director for beginners. Respond with JSON only. No markdown formatting.
-Schema:
-{
-  "cuts": [
-    { "step": number, "instruction": "string", "purpose": "string", "duration": number, "technique": "string", "tips": "string", "ng": "string" }
-  ],
-  "sns": { "text": "string", "hashtags": ["string"], "bgm": "string", "title": "string" }
-}`;
+                // カット数に応じてスライス
+                const cuts = data.cuts.slice(0, config.cutCount).map((c, i) => ({
+                    step: i + 1,
+                    instruction: c.instruction,
+                    purpose: c.purpose,
+                    duration: Math.round(CUT_TECHNIQUES[i].duration * config.multiplier),
+                    technique: CUT_TECHNIQUES[i].technique,
+                    tips: CUT_TECHNIQUES[i].tips,
+                    ng: CUT_TECHNIQUES[i].ng
+                }));
 
-                const mockData = {
-                    cuts: [
-                        { step: 1, instruction: "外観や看板を5秒撮影してください", purpose: "どこにあるどんな場所かを見ている人に伝えるため", duration: 5, technique: "固定撮影（じっと止める）", tips: "スマホを両手でしっかり持ち、深呼吸して止めましょう。", ng: "歩きながら撮るとブレて見にくくなります。" },
-                        { step: 2, instruction: "働く人の笑顔や作業風景を撮影", purpose: "安心感と温かさを伝えるため", duration: 6, technique: "寄り撮影（少し近づく）", tips: "少し近づいて、表情や手元がよく見えるように撮ります。", ng: "遠くから小さく撮ると雰囲気が伝わりません。" },
-                        { step: 3, instruction: "こだわりのポイントを撮影", purpose: "あなたの会社の魅力を伝えるため", duration: 5, technique: "パン撮影（ゆっくり横へ）", tips: "息を止めて、3秒かけてゆっくりと横にスライドさせます。", ng: "速く動かしすぎると見ている人が酔ってしまいます。" },
-                        { step: 4, instruction: "完成した状態や、全体の風景", purpose: "動画の最後に余韻を残すため", duration: 5, technique: "固定撮影", tips: "そのままじっと5秒数えます。", ng: "縦横に画面を揺らさないでください。" }
-                    ],
+                // SNSテキストはテーマ冒頭フレーズ＋業種テキスト
+                const built = {
+                    cuts: cuts,
                     sns: {
-                        text: "私たちの想いがつまった日常風景です。少しでも雰囲気が伝われば嬉しいです！ぜひお気軽にお問い合わせください😊",
-                        hashtags: ["#日常風景", "#想いを伝える", "#初心者動画"],
-                        bgm: "温かみのあるアコースティックギター",
-                        title: "私たちの日常と想い"
+                        title: data.sns.title,
+                        text: themePrefix + " " + data.sns.text,
+                        hashtags: data.sns.hashtags,
+                        bgm: data.sns.bgm
                     }
                 };
 
-                try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt }] }],
-                            systemInstruction: { parts: [{ text: systemPrompt }] },
-                            generationConfig: { responseMimeType: "application/json" }
-                        })
-                    });
-
-                    if (!response.ok) throw new Error("API Error");
-                    
-                    const data = await response.json();
-                    const generatedText = data.candidates[0].content.parts[0].text;
-                    setGuideData(JSON.parse(generatedText));
-                } catch (err) {
-                    console.warn("API request failed or parsing error, using mock data.", err);
-                    setGuideData(mockData);
-                } finally {
-                    setLoading(false);
-                }
+                setGuideData(built);
+                setStep(4);
             };
 
+            // コピー機能＆トースト通知表示
             const handleCopy = () => {
                 const textToCopy = `【${guideData.sns.title}】\n\n${guideData.sns.text}\n\n${guideData.sns.hashtags.join(" ")}`;
-                
                 const textArea = document.createElement("textarea");
                 textArea.value = textToCopy;
                 document.body.appendChild(textArea);
                 textArea.select();
                 try {
                     document.execCommand('copy');
-                    setToastMessage("クリップボードにコピーしました！");
+                    setShowToast(true);
+                    setTimeout(() => setShowToast(false), 2500); // 2.5秒後に自動で消える
                 } catch (err) {
-                    setToastMessage("コピーに失敗しました。手動でコピーしてください。");
+                    alert("コピーに失敗しました。手動でコピーしてください。");
                 }
                 document.body.removeChild(textArea);
-                
-                // 3秒後にメッセージを消す
-                setTimeout(() => setToastMessage(""), 3000);
+            };
+
+            const resetToTop = () => {
+                setStep(0);
+                setCurrentCut(0);
+                setGuideData(null);
+                setIndustry('');
+                setTheme('');
+                setDuration('');
+                setShowModal(false);
             };
 
             const renderTop = () => (
                 <div className="flex flex-col items-center justify-center min-h-[90vh] text-center p-4">
                     <div className="bg-white p-8 rounded-3xl shadow-sm w-full max-w-sm">
+                        <img src="https://spc-jp.github.io/kokoro-short-videos/favicon.png" alt="Logo" className="w-20 h-20 mx-auto mb-4 rounded-2xl shadow-sm" onerror="this.style.display='none'" />
                         <h1 className="text-3xl font-black text-gray-800 mb-2">ココロ・ショート</h1>
                         <p className="text-orange-500 font-bold mb-8">〜 想いを伝える動画ガイド 〜</p>
                         <p className="text-gray-600 mb-8 font-medium leading-relaxed">
@@ -189,11 +283,7 @@ Schema:
                     </div>
                     <div className="grid grid-cols-1 gap-3 flex-grow">
                         {options.map((opt, i) => (
-                            <button 
-                                key={i} 
-                                onClick={() => onSelect(opt)}
-                                className="btn-select w-full text-lg py-4 rounded-xl font-bold shadow-sm"
-                            >
+                            <button key={i} onClick={() => onSelect(opt)} className="btn-select w-full text-lg py-4 rounded-xl font-bold shadow-sm">
                                 {opt}
                             </button>
                         ))}
@@ -202,7 +292,7 @@ Schema:
                         <button onClick={() => setStep(step - 1)} className="text-gray-500 font-bold py-3">
                             ◀ 1つ前に戻る
                         </button>
-                        <button onClick={() => { setStep(0); setIndustry(''); setTheme(''); setDuration(''); }} className="text-gray-400 text-sm font-bold py-2">
+                        <button onClick={() => setShowModal(true)} className="text-gray-400 text-sm font-bold py-2">
                             最初からやり直す
                         </button>
                     </div>
@@ -210,20 +300,8 @@ Schema:
             );
 
             const renderGuide = () => {
-                if (loading || !guideData) {
-                    return (
-                        <div className="flex flex-col items-center justify-center min-h-[90vh] p-4 text-center relative">
-                            <button 
-                                onClick={() => { setStep(0); setLoading(false); }}
-                                className="absolute top-4 left-4 text-gray-400 text-sm font-bold"
-                            >
-                                ◀ 中止する
-                            </button>
-                            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500 mb-6 mx-auto"></div>
-                            <h2 className="text-2xl font-bold text-gray-800 mb-2">台本を作成中...</h2>
-                            <p className="text-gray-600">あなた専用の撮影ガイドを考えています</p>
-                        </div>
-                    );
+                if (!guideData) {
+                    return null;
                 }
 
                 const cut = guideData.cuts[currentCut];
@@ -231,19 +309,13 @@ Schema:
 
                 return (
                     <div className="max-w-md mx-auto p-4 flex flex-col min-h-screen">
-                        {/* ヘッダー操作部 */}
+                        {/* 上部ヘッダー操作ナビ */}
                         <div className="flex justify-between items-center mb-2 mt-2 px-1">
-                            <button 
-                                onClick={() => setShowResetConfirm(true)} 
-                                className="text-gray-400 text-sm font-bold flex items-center"
-                            >
+                            <button onClick={() => setShowModal(true)} className="text-gray-400 text-sm font-bold flex items-center py-2">
                                 ◀ 最初に戻る
                             </button>
                             {currentCut > 0 && (
-                                <button 
-                                    onClick={() => setCurrentCut(c => c - 1)}
-                                    className="text-gray-500 text-sm font-bold bg-white border border-gray-200 px-4 py-1.5 rounded-full shadow-sm active:bg-gray-50"
-                                >
+                                <button onClick={() => setCurrentCut(c => c - 1)} className="text-gray-500 text-sm font-bold bg-white border border-gray-200 px-4 py-1.5 rounded-full shadow-sm">
                                     前のカット
                                 </button>
                             )}
@@ -290,19 +362,16 @@ Schema:
                                 </div>
                             </div>
 
-                            {/* カメラ起動ボタン */}
+                            {/* カメラボタン */}
                             <div className="mt-4">
-                                <label className="flex items-center justify-center w-full bg-red-500 text-white py-4 rounded-xl font-bold cursor-pointer transition-colors hover:bg-red-600 shadow-lg">
+                                <label className="flex items-center justify-center w-full bg-red-500 text-white py-4 rounded-xl font-bold cursor-pointer transition-colors hover:bg-red-600 shadow-lg active:scale-95">
                                     <span className="text-2xl mr-2">📸</span> カメラを開く (約{cut.duration}秒)
                                     <input type="file" accept="video/*" capture="environment" className="hidden" />
                                 </label>
                             </div>
                         </div>
 
-                        <button 
-                            onClick={() => isLast ? setStep(5) : setCurrentCut(c => c + 1)}
-                            className="btn-primary w-full text-xl py-5 rounded-2xl shadow-lg font-bold mt-auto mb-4"
-                        >
+                        <button onClick={() => isLast ? setStep(5) : setCurrentCut(c => c + 1)} className="btn-primary w-full text-xl py-5 rounded-2xl shadow-lg font-bold mt-auto mb-4">
                             {isLast ? "すべての撮影を完了する！" : "撮影できた！（次の指示へ）"}
                         </button>
                     </div>
@@ -343,71 +412,48 @@ Schema:
                             {guideData.sns.hashtags.join(" ")}
                         </div>
                         
-                        <button 
-                            onClick={handleCopy}
-                            className="w-full bg-gray-800 text-white py-4 rounded-xl font-bold transition-colors hover:bg-gray-700"
-                        >
+                        <button onClick={handleCopy} className="w-full bg-gray-800 text-white py-4 rounded-xl font-bold transition-colors hover:bg-gray-700">
                             テキストをコピーする
                         </button>
                     </div>
                     
-                    <button 
-                        onClick={() => setShowResetConfirm(true)}
-                        className="w-full text-orange-600 py-4 font-bold"
-                    >
+                    <button onClick={() => setShowModal(true)} className="w-full text-orange-600 py-4 font-bold">
                         最初からやり直す
                     </button>
                 </div>
             );
 
-            // 確認用モーダルUI
-            const renderConfirmModal = () => {
-                if (!showResetConfirm) return null;
-                return (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl">
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">最初に戻りますか？</h3>
-                            <p className="text-gray-600 text-sm mb-6">現在の撮影ガイドのデータはリセットされます。</p>
-                            <div className="flex gap-3">
-                                <button 
-                                    onClick={() => setShowResetConfirm(false)}
-                                    className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl"
-                                >
-                                    キャンセル
-                                </button>
-                                <button 
-                                    onClick={() => {
-                                        setShowResetConfirm(false);
-                                        setStep(0); 
-                                        setCurrentCut(0); 
-                                        setGuideData(null);
-                                    }}
-                                    className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl"
-                                >
-                                    戻る
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
             return (
-                <div className="font-sans antialiased">
+                <div className="font-sans antialiased relative">
                     {step === 0 && renderTop()}
                     {step === 1 && renderSelection("あなたの業種は？", industries, (val) => { setIndustry(val); setStep(2); })}
                     {step === 2 && renderSelection("動画のテーマは？", themes, (val) => { setTheme(val); setStep(3); })}
-                    {step === 3 && renderSelection("動画の長さは？", durations, (val) => generateGuide(val))}
+                    {step === 3 && renderSelection("動画の長さは？", durations, (val) => buildGuide(val))}
                     {step === 4 && renderGuide()}
                     {step === 5 && renderComplete()}
-                    
-                    {/* モーダル表示 */}
-                    {renderConfirmModal()}
 
-                    {/* トースト通知表示 */}
-                    {toastMessage && (
-                        <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg z-50 text-sm font-bold animate-fade-in-up whitespace-nowrap">
-                            {toastMessage}
+                    {/* 自作確認用モーダルダイアログ */}
+                    {showModal && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-fade-in">
+                            <div className="bg-white p-6 rounded-2xl max-w-xs w-full text-center shadow-xl">
+                                <h3 className="text-lg font-bold text-gray-900 mb-2">最初に戻りますか？</h3>
+                                <p className="text-sm text-gray-500 mb-6">これまでの入力や撮影の進み具合がリセットされます。</p>
+                                <div className="flex space-x-3">
+                                    <button onClick={() => setShowModal(false)} className="w-1/2 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl text-sm">
+                                        続ける
+                                    </button>
+                                    <button onClick={resetToTop} className="w-1/2 py-3 bg-red-500 text-white font-bold rounded-xl text-sm">
+                                        戻る
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* コピー完了通知用トースト */}
+                    {showToast && (
+                        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-bold shadow-lg z-50 flex items-center space-x-2 transition-all duration-300">
+                            <span>✨ クリップボードにコピーしました！</span>
                         </div>
                     )}
                 </div>
